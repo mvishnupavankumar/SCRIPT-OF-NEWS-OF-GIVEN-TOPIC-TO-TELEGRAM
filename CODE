@@ -1,0 +1,285 @@
+{
+  "name": "SCRIPT OF NEWS OF GIVEN TOPIC TO TELEGRAM",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -400,
+        20
+      ],
+      "id": "7ef29147-ab07-4ebf-b229-5fe7f053c84e",
+      "name": "Telegram Trigger",
+      "webhookId": "YOUR_WEBHOOK_URL",
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_ME",
+          "name": " N8N TESTING"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": " return [{\n  json: {\n    text: $json.message.text\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -180,
+        20
+      ],
+      "id": "7d24f341-ef5e-4b07-96a3-36f4c33e4ea8",
+      "name": "EXXTRACT DATA"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "74f74e02-49af-4b11-a7c2-bc0ced61300f",
+              "name": "topic",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        60,
+        20
+      ],
+      "id": "837831c8-4f84-4888-9272-2e7805b3af62",
+      "name": "SEND TEXT"
+    },
+    {
+      "parameters": {
+        "url": " https://newsdata.io/api/1/news?apikey=YOUR_NEWSDATA_IO_API_KEY&language=en&country=in",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "ropic",
+              "value": "={{ $json.topic }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        320,
+        20
+      ],
+      "id": "c4be3e77-e2cb-4f33-8ab5-bd0581f8c926",
+      "name": " EXTRACT DATA FROM INTERNET"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": " Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_OPENROUTER_BEARER_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "= {\n  \"model\": \"mistralai/mistral-7b-instruct\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a video scriptwriter.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Write a short, engaging 60-second video script about: {{$json['topic']}}\"\n    }\n  ]\n}\n",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        740,
+        20
+      ],
+      "id": "1af0dae0-303e-45d4-8198-3c5b45da3368",
+      "name": " MAKE SCRIPT"
+    },
+    {
+      "parameters": {
+        "jsCode": " const articles = $json.results || [];\n\nconst newsList = articles.map(n =>\n  `📰 ${n.title}\\n🔗 ${n.link}`\n).join('\\n\\n');\n\nreturn [{\n  json: {\n    emailBody: newsList || \"No news articles found.\"\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        20
+      ],
+      "id": "740dd4d3-75a9-4f20-96bb-8e19a30e6b8b",
+      "name": " SEND NEWS"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ff486faf-70bc-4677-91b3-c4e1e7404161",
+              "name": "prompt",
+              "value": "= {{$json[\"body\"][\"choices\"][0][\"message\"][\"content\"].replace(/\\n/g, \" \")}}\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        20
+      ],
+      "id": "d653b9d9-0ce6-4fdb-ab1e-e5d679480e21",
+      "name": " CLEAN SCRIPT AND SENDS"
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "={{ $json.prompt }}",
+        "replyMarkup": "= ",
+        "forceReply": {},
+        "replyKeyboardOptions": {},
+        "replyKeyboardRemove": {},
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1260,
+        20
+      ],
+      "id": "f9256173-945a-4514-9ff8-765a552bc8f7",
+      "name": " SEND SCRIPT TO TELEGRAM",
+      "webhookId": "YOUR_WEBHOOK_URL",
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_ME",
+          "name": " N8N TESTING"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "EXXTRACT DATA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EXXTRACT DATA": {
+      "main": [
+        [
+          {
+            "node": "SEND TEXT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEND TEXT": {
+      "main": [
+        [
+          {
+            "node": " EXTRACT DATA FROM INTERNET",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    " EXTRACT DATA FROM INTERNET": {
+      "main": [
+        [
+          {
+            "node": " SEND NEWS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    " MAKE SCRIPT": {
+      "main": [
+        [
+          {
+            "node": " CLEAN SCRIPT AND SENDS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    " SEND NEWS": {
+      "main": [
+        [
+          {
+            "node": " MAKE SCRIPT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    " CLEAN SCRIPT AND SENDS": {
+      "main": [
+        [
+          {
+            "node": " SEND SCRIPT TO TELEGRAM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "REPLACE_ME",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "REPLACE_ME"
+  },
+  "id": "REPLACE_ME",
+  "tags": []
+}
